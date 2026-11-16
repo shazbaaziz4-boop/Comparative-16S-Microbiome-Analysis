@@ -1,0 +1,274 @@
+---
+title: "Comparative 16S rRNA Microbiome Analysis"
+subtitle: "Gut, Marine Sediment, and Soil Communities"
+author: "Prepared for academic review"
+output:
+  pdf_document:
+    toc: false
+    toc_depth: 3
+    number_sections: true
+    latex_engine: pdflatex
+    keep_tex: true
+geometry: margin=1in
+fontsize: 11pt
+header-includes:
+  - \usepackage{float}
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{graphicx}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "0.88\\linewidth"
+)
+# Use the project root as the working directory so Report/Figures,
+# Report/Tables, and Scripts can be referenced consistently.
+knitr::opts_knit$set(root.dir = normalizePath("..", winslash = "/", mustWork = TRUE))
+
+read_report_table <- function(file) {
+  path <- file.path(
+    "C:/Users/PMLS/Desktop/Microbiome_analysis",
+    "Report", "Tables", file
+  )
+  if (!file.exists(path)) stop('Required report table is missing: ', path)
+  utils::read.csv(path, check.names = FALSE)
+}
+
+show_table <- function(data, caption, digits = 3) {
+  knitr::kable(
+    data,
+    format = "latex",
+    booktabs = TRUE,
+    longtable = nrow(data) > 12,
+    caption = caption,
+    digits = digits,
+    row.names = FALSE
+  )
+}
+
+show_figure <- function(file, caption, width = 0.88) {
+  path <- file.path(
+    "C:/Users/PMLS/Desktop/Microbiome_analysis",
+    "Report", "Figures", file
+  )
+  if (!file.exists(path)) {
+    stop("Required figure is missing: ", path)
+  }
+  knitr::include_graphics(
+    normalizePath(path, winslash = '/', mustWork = TRUE)
+  )
+}
+```
+
+# Materials and Methods
+
+## Dataset and sample groups
+
+The dataset contained 18 samples: six Gut samples, six Marine samples, and six Soil samples. The sample groups were retained as supplied in the project metadata. The raw OTU table contained 12,650 rows and 18 sample columns, together with seven taxonomy columns.
+
+Detailed sequencing metadata such as the sequencing platform, primer sequences, targeted variable region, sequencing run, and repository accession were not available in the supplied project information and are therefore not reported here.
+
+## Software and packages
+
+The analysis was conducted in R using RStudio. The workflow used the `phyloseq`, `DESeq2`, `vegan`, `dplyr`, `tidyr`, `ggplot2`, `readxl`, and `tibble` packages. `phyloseq` was used to organise and manipulate microbiome data; `vegan` was used for dissimilarity, PCoA-related, PERMANOVA, and dispersion analyses; and `DESeq2` was used for differential-abundance testing.
+
+## Data preparation and filtering
+
+The raw count table, sample metadata, and taxonomy information were assembled into a `phyloseq` object. Chloroplast sequences, Eukaryota assignments, and taxa with missing kingdom-level classification were removed. The resulting cleaned object contained 12,185 taxa and 18 samples.
+
+For alpha- and beta-diversity analyses, the cleaned data were rarefied to 10,938 reads per sample using a fixed random seed (123). The rarefied object contained 7,068 taxa. All samples therefore had an equalised library size of 10,938 reads for these diversity analyses.
+
+For DESeq2, the cleaned, unrarefied count data were used. OTUs with a total count below 10 across all samples were filtered out before model fitting, leaving 3,922 OTUs for the DESeq2 analysis.
+
+## Alpha diversity
+
+Alpha diversity was estimated using four indices: Observed richness, Chao1, Shannon, and Simpson. Group differences were assessed using Kruskal–Wallis tests. Pairwise group comparisons were performed using Wilcoxon rank-sum tests, with p-values adjusted using the Benjamini–Hochberg procedure.
+
+## Beta diversity
+
+The cleaned count data were converted to within-sample relative abundances for Bray–Curtis analysis. Bray–Curtis dissimilarity was calculated from these relative abundances. Binary Jaccard dissimilarity was calculated using presence/absence information. Both distance matrices were visualised using principal coordinates analysis (PCoA).
+
+Group differences in community composition were tested using PERMANOVA (`adonis2`) with 999 permutations. Homogeneity of multivariate dispersion was evaluated using `betadisper` and permutation tests with 999 permutations. Dispersion tests were included because unequal within-group dispersion can complicate the interpretation of PERMANOVA.
+
+## Taxonomic composition
+
+Taxonomic composition figures were prepared at phylum, class, order, family, and genus levels using the supplied rank-level abundance spreadsheets. The master analysis script checks that these five figures are present in the report folder and records their availability. It does not regenerate the rank-level composition figures.
+
+## Differential-abundance analysis
+
+Differential abundance was analysed using DESeq2 on the cleaned, unrarefied count data. Group was included as the explanatory variable, with Gut as the reference group. Three contrasts were evaluated: Marine versus Gut, Soil versus Gut, and Marine versus Soil. OTUs with Benjamini–Hochberg adjusted p-values (`padj`) below 0.05 were classified as statistically significant for the summaries. Taxonomy was joined to the significant OTU results where available. The direction of change was assigned from the sign of the log2 fold change.
+
+# Results
+
+## Alpha diversity
+
+Kruskal–Wallis tests detected significant differences among the three groups for all four alpha-diversity indices.
+
+```{r alpha-kw}
+alpha_kw <- read_report_table("Alpha_Kruskal_Wallis.csv")
+show_table(alpha_kw, "Kruskal–Wallis tests for alpha-diversity indices")
+```
+
+The group summaries are shown below.
+
+```{r alpha-summary}
+alpha_summary <- read_report_table("Alpha_Group_Summary.csv")
+show_table(alpha_summary, "Group summaries for alpha-diversity indices")
+```
+
+Pairwise Wilcoxon tests with Benjamini–Hochberg adjustment showed that Gut samples had significantly lower values than both Marine and Soil samples for all four indices. No significant difference was detected between Marine and Soil samples.
+
+```{r alpha-pairwise}
+alpha_pairwise <- read_report_table("Alpha_Pairwise_Summary.csv")
+show_table(alpha_pairwise, "Pairwise Wilcoxon tests with Benjamini–Hochberg adjustment")
+```
+
+The median values provide a descriptive comparison:
+
+| Index | Gut | Marine | Soil |
+|:--|--:|--:|--:|
+| Observed richness | 344 | 1,064 | 1,032 |
+| Chao1 | 384 | 1,485 | 1,347 |
+| Shannon | 3.32 | 5.56 | 5.49 |
+| Simpson | 0.872 | 0.987 | 0.988 |
+
+Overall, Gut samples showed lower observed richness and lower diversity than Marine and Soil samples. Marine and Soil samples had broadly comparable alpha-diversity values.
+
+### Observed richness
+
+```{r observed-plot, fig.cap="Observed richness across Gut, Marine, and Soil samples."}
+show_figure("Observed_Diversity.png", "Observed richness")
+```
+
+### Chao1 richness
+
+```{r chao1-plot, fig.cap="Chao1 estimated richness across the three sample groups."}
+show_figure("Chao1_Diversity.png", "Chao1 richness")
+```
+
+### Shannon diversity
+
+```{r shannon-plot, fig.cap="Shannon diversity across the three sample groups."}
+show_figure("Shannon_Diversity.png", "Shannon diversity")
+```
+
+### Simpson diversity
+
+```{r simpson-plot, fig.cap="Simpson diversity across the three sample groups."}
+show_figure("Simpson_Diversity.png", "Simpson diversity")
+```
+
+## Beta diversity
+
+### Bray–Curtis PCoA
+
+```{r bray-pcoa, fig.cap="PCoA ordination based on Bray–Curtis dissimilarity."}
+show_figure("PCoA_BrayCurtis.png", "Bray–Curtis PCoA")
+```
+
+### Jaccard PCoA
+
+```{r jaccard-pcoa, fig.cap="PCoA ordination based on binary Jaccard dissimilarity."}
+show_figure("PCoA_Jaccard.png", "Jaccard PCoA")
+```
+
+PERMANOVA identified significant differences among groups for both Bray–Curtis and Jaccard dissimilarities.
+
+```{r permanova-tables}
+bray_permanova <- read_report_table("PERMANOVA_BrayCurtis.csv")
+jaccard_permanova <- read_report_table("PERMANOVA_Jaccard.csv")
+show_table(bray_permanova, "PERMANOVA based on Bray–Curtis dissimilarity")
+show_table(jaccard_permanova, "PERMANOVA based on binary Jaccard dissimilarity")
+```
+
+The Bray–Curtis PERMANOVA result was R² = 0.63979, F = 13.321, p = 0.001. The Jaccard result was R² = 0.38402, F = 4.6758, p = 0.001.
+
+Tests of homogeneity of multivariate dispersion were also significant for both distance measures: Bray–Curtis F = 5.0742, p = 0.023, and Jaccard F = 5.1228, p = 0.025. This indicates that within-group dispersion differed among groups. Consequently, the significant PERMANOVA results should not be interpreted as evidence of differences in group centroids alone; differences in dispersion may also contribute.
+
+## Taxonomic composition
+
+Taxonomic composition was visualised at five taxonomic levels. These figures describe the relative-abundance patterns represented in the supplied rank-level tables.
+
+### Phylum level
+
+```{r phylum-plot, fig.cap="Taxonomic composition at the phylum level."}
+show_figure("Phylum_Composition.png", "Phylum composition")
+```
+
+### Class level
+
+```{r class-plot, fig.cap="Taxonomic composition at the class level."}
+show_figure("Class_Composition.png", "Class composition")
+```
+
+### Order level
+
+```{r order-plot, fig.cap="Taxonomic composition at the order level."}
+show_figure("Order_Composition.png", "Order composition")
+```
+
+### Family level
+
+```{r family-plot, fig.cap="Taxonomic composition at the family level."}
+show_figure("Family_Composition.png", "Family composition")
+```
+
+### Genus level
+
+```{r genus-plot, fig.cap="Taxonomic composition at the genus level."}
+show_figure("Genus_Composition.png", "Genus composition")
+```
+
+The taxonomic plots should be interpreted as summaries of the supplied rank-level abundance tables. Any residual category labelled “Other” or “Unrepresented” represents an unassigned or unrepresented fraction in the plotted data, not a formally identified taxon. Some supplied genus labels may combine related or synonymised names; the labels are retained as provided in the source tables.
+
+## Differential-abundance analysis (DESeq2)
+
+DESeq2 identified significant OTUs in all three pairwise comparisons using an adjusted p-value threshold of 0.05.
+
+```{r deseq-summary}
+deseq_summary <- read_report_table("DESeq2_Biomarker_Summary.csv")
+show_table(deseq_summary, "Summary of significant DESeq2 OTUs by comparison")
+```
+
+The results were:
+
+- **Marine versus Gut:** 656 significant OTUs; 647 were higher in Marine and 9 were higher in Gut.
+- **Soil versus Gut:** 1,670 significant OTUs; 1,634 were higher in Soil and 36 were higher in Gut.
+- **Marine versus Soil:** 1,043 significant OTUs; 199 were higher in Marine and 844 were higher in Soil.
+
+These counts indicate that the largest number of significant OTUs was observed in the Soil-versus-Gut comparison. In the Marine-versus-Gut and Soil-versus-Gut comparisons, most significant OTUs were higher in the environmental group. In the Marine-versus-Soil comparison, more significant OTUs were higher in Soil.
+
+The phylum-level summary counts the significant OTUs assigned to each phylum and direction. It is not a measure of the total relative abundance of each phylum.
+
+```{r deseq-phylum-table}
+deseq_phylum <- read_report_table("DESeq2_Phylum_Summary.csv")
+show_table(deseq_phylum, "Significant DESeq2 OTUs summarised by phylum and direction")
+```
+
+```{r deseq-phylum-figure, fig.cap="Phylum-level summary of significant DESeq2 OTUs."}
+show_figure("DESeq2_Phylum_Biomarker.png", "DESeq2 phylum summary")
+```
+
+```{r deseq-top-phyla, fig.cap="Top phyla represented among significant DESeq2 OTUs for each comparison."}
+show_figure("DESeq2_Top10_Phyla.png", "Top phyla among significant OTUs")
+```
+
+# Appendix A. Complete commented R analysis script
+
+The complete master R script used for the analysis is included below. It is read directly from the project `Scripts` folder during rendering.
+
+```{r full-analysis-script, echo=FALSE, results='asis'}
+script_path <- "C:/Users/PMLS/Desktop/Microbiome_analysis/Scripts/Complete_Microbiome_Analysis.R"
+if (!file.exists(script_path)) {
+  stop("The master R script was not found at: ", script_path)
+}
+script_lines <- readLines(script_path, warn = FALSE)
+cat("```r\n")
+cat(paste(script_lines, collapse = "\n"))
+cat("\n```\n")
+```
