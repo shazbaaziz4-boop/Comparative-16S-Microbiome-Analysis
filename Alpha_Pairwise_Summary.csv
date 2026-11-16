@@ -1,0 +1,13 @@
+"Measure","Comparison","Adjusted_P_value"
+"Observed","Marine vs Gut",0.00761230214691033
+"Observed","Soil vs Gut",0.00761230214691033
+"Observed","Soil vs Marine",0.936186293473059
+"Chao1","Marine vs Gut",0.012358528238587
+"Chao1","Soil vs Gut",0.012358528238587
+"Chao1","Soil vs Marine",0.810181236410474
+"Shannon","Marine vs Gut",0.00761230214691033
+"Shannon","Soil vs Gut",0.00761230214691033
+"Shannon","Soil vs Marine",0.688920555804461
+"Simpson","Marine vs Gut",0.00761230214691033
+"Simpson","Soil vs Gut",0.00761230214691033
+"Simpson","Soil vs Marine",0.575173531920197
